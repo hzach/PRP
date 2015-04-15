@@ -1,0 +1,7 @@
+#sbt
+submission/
+target/
+
+#intellij
+.idea
+
