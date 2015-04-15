@@ -1,7 +1,6 @@
 #sbt
-submission/
 target/
+submission/
 
 #intellij
 .idea
-
