@@ -1,6 +1,6 @@
 submitProjectName := "quickcheck"
 
-scalaVersion := "2.11.5"
+scalaVersion := "2.11.6"
 
 scalacOptions ++= Seq("-deprecation", "-feature")
 
@@ -40,7 +40,7 @@ projectDetailsMap := {
                     maxScore = 10d,
                     styleScoreRatio = 0.0,
                     courseId=currentCourseId,
-                    dependencies = Seq("org.scalacheck" %% "scalacheck" % "1.12.1")),
+                    dependencies = Seq("org.scalacheck" %% "scalacheck" % "1.12.2")),
     "simulations" -> ProjectDetails(
                     packageName = "simulations",
                     assignmentPartId = "pA3TAeu1",
