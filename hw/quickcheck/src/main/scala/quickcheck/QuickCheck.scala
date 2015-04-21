@@ -4,7 +4,6 @@ import common._
 
 import quickcheck._
 import org.scalacheck._
-import org.scalacheck.Prop.BooleanOperators
 import Arbitrary._
 import Gen._
 import Prop._
@@ -28,7 +27,34 @@ abstract class QuickCheckHeap extends Properties("Heap") with IntHeap {
     h_rm == empty
   }
 
+<<<<<<< HEAD
   property("erase ")
+=======
+  property("findMin order") = forAll { lst: List[A] =>
+
+    def insertSeq(lst: List[A], acc: H): H = lst match {
+      case Nil => acc
+      case x::xs => insertSeq(xs, insert(x,acc))
+    }
+
+    def extractSeq(h: H, acc: List[A]): List[A] = {
+      if (isEmpty(h)) acc
+      else extractSeq(deleteMin(h), acc :+ findMin(h))
+    }
+
+    val h = insertSeq(lst, empty)
+    val mins = extractSeq(h, Nil)
+
+    mins == lst.sorted
+
+  }
+
+  property("min Meld") = forAll { (h:H, i:H) =>
+    val hMin = findMin(h)
+    val iMin = findMin(i)
+    findMin(meld(h,i)) == math.min(hMin, iMin)
+  }
+>>>>>>> 20e2c8edec7abeb4eb2b4636c971bbdfd138a247
 
   property("gen1") = forAll { (h: H) =>
     val m = if (isEmpty(h)) 0 else findMin(h)
