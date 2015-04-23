@@ -51,4 +51,61 @@ class CalculatorSuite extends FunSuite with ShouldMatchers {
     assert(resultRed2() == "red")
   }
 
+   /******************
+    *** CALCULATOR ***
+    ******************/
+
+  trait calcTestThings{
+
+     val One = Literal(1)
+     val Two = Literal(2)
+     val Three = Literal(3)
+
+     val namedExpressions1: Map[String, Signal[Expr]] =
+       Map(
+         "a" -> Signal(One),
+         "b" -> Signal(Times(Ref("a"), Three)),
+         "c" -> Signal(Divide(Ref("b"), Two)),
+         "d" -> Signal(Plus(Ref("a"), Ref("c")))
+       )
+
+     val selfReference: Map[String, Signal[Expr]] =
+      Map(
+        "a" -> Signal(Ref("a")),
+        "b" -> Signal(Plus(Ref("a"), Ref("b"))),
+        "c" -> Signal(Plus(Ref("c"), Literal(1)))
+      )
+
+     val expected =
+       Map(
+         "a" -> Signal(1),
+         "b" -> Signal(3),
+         "c" -> Signal(1.5),
+         "d" -> Signal(2.5))
+   }
+
+  test("should evaluate an expression") {
+
+    new calcTestThings {
+      assert(Calculator.eval(One, namedExpressions1) == 1)
+      assert(Calculator.eval(Ref("a"), namedExpressions1) == 1)
+      assert(Calculator.eval(Ref("b"), namedExpressions1) == 3)
+
+      assert(Calculator.eval(Plus(One, Two), namedExpressions1) == 3)
+      assert(Calculator.eval(Minus(Three, One), namedExpressions1) == 2)
+      assert(Calculator.eval(Times(Three, Two), namedExpressions1) == 6)
+      assert(Calculator.eval(Divide(Literal(8), Two), namedExpressions1) == 4)
+
+      //NaN cases
+      assert(Calculator.eval(Divide(Literal(1),Literal(0)), namedExpressions1) == Double.Infinity)
+      //assert(Calculator.eval(Ref("a"), selfReference) == Double.NaN)
+    }
+
+  }
+
+  test("computeValues returns a map of names to their evaluated expressions") {
+//    new calcTestThings {
+//      assert(Calculator.computeValues(namedExpressions1) == expected)
+//    }
+  }
 }
