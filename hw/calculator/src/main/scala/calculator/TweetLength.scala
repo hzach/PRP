@@ -12,7 +12,7 @@ object TweetLength {
       val n = remainingCharsCount()
       if (n >= 15) "green"
       else
-        if (n < 14 && n >= 0) "orange"
+        if (n <= 14 && n >= 0) "orange"
         else "red"
     }
   }
