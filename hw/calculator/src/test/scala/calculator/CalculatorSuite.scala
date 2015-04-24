@@ -69,11 +69,13 @@ class CalculatorSuite extends FunSuite with ShouldMatchers {
          "d" -> Signal(Plus(Ref("a"), Ref("c")))
        )
 
-     val selfReference: Map[String, Signal[Expr]] =
+     val pathologicalReference: Map[String, Signal[Expr]] =
       Map(
         "a" -> Signal(Ref("a")),
         "b" -> Signal(Plus(Ref("a"), Ref("b"))),
-        "c" -> Signal(Plus(Ref("c"), Literal(1)))
+        "c" -> Signal(Plus(Ref("c"), One)),
+        "d" -> Signal(Plus(Ref("e"), Two)),
+        "e" -> Signal(Plus(Ref("d"), One))
       )
 
      val expected =
@@ -81,7 +83,8 @@ class CalculatorSuite extends FunSuite with ShouldMatchers {
          "a" -> Signal(1),
          "b" -> Signal(3),
          "c" -> Signal(1.5),
-         "d" -> Signal(2.5))
+         "d" -> Signal(2.5)
+       ) withDefaultValue Signal(Double.NaN)
    }
 
   test("should evaluate an expression") {
@@ -96,9 +99,15 @@ class CalculatorSuite extends FunSuite with ShouldMatchers {
       assert(Calculator.eval(Times(Three, Two), namedExpressions1) == 6)
       assert(Calculator.eval(Divide(Literal(8), Two), namedExpressions1) == 4)
 
-      //NaN cases
-      assert(Calculator.eval(Divide(Literal(1),Literal(0)), namedExpressions1) == Double.Infinity)
-      //assert(Calculator.eval(Ref("a"), selfReference) == Double.NaN)
+      //Infinite or NaN cases
+      assert( Calculator.eval(Divide(Literal(1), Literal(0)), namedExpressions1).isInfinity )
+      assert( Calculator.eval(Divide(Literal(0), Literal(0)), namedExpressions1).isNaN )
+      assert( Calculator.eval(Ref("a"), pathologicalReference).isNaN )
+      assert( Calculator.eval(Ref("f"), pathologicalReference).isNaN )
+      assert( Calculator.eval(Ref("b"), pathologicalReference).isNaN )
+      assert( Calculator.eval(Ref("c"), pathologicalReference).isNaN )
+      assert( Calculator.eval(Ref("d"), pathologicalReference).isNaN )
+      assert( Calculator.eval(Ref("e"), pathologicalReference).isNaN )
     }
 
   }
