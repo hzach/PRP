@@ -65,9 +65,9 @@ class CalculatorSuite extends FunSuite with ShouldMatchers {
        Map(
          "a" -> Signal(One),
          "b" -> Signal(Times(Ref("a"), Three)),
-         "c" -> Signal(Divide(Ref("b"), Two)),
+         "c" -> Signal(Divide(Ref("a"), Two)),
          "d" -> Signal(Plus(Ref("a"), Ref("c"))),
-         "e" -> Signal(Ref("a"))
+         "e" -> Signal(Plus(Ref("e"), One))
        )
 
      val pathologicalReference: Map[String, Signal[Expr]] =
@@ -79,13 +79,19 @@ class CalculatorSuite extends FunSuite with ShouldMatchers {
         "e" -> Signal(Plus(Ref("d"), One))
       )
 
+     val badRef: Map[String, Signal[Expr]] =
+      Map(
+        "a" -> Signal(Plus(Ref("b"), One)),
+        "b" -> Signal(Times(Two, Ref("a")))
+      )
+
      val expected =
        Map(
          "a" -> Signal(1),
          "b" -> Signal(3),
-         "c" -> Signal(1.5),
+         "c" -> Signal(2),
          "d" -> Signal(2.5)
-       ) withDefaultValue Signal(Double.NaN)
+       )
    }
 
   test("should evaluate an expression") {
@@ -94,6 +100,7 @@ class CalculatorSuite extends FunSuite with ShouldMatchers {
       assert(Calculator.eval(One, namedExpressions1) == 1)
       assert(Calculator.eval(Ref("a"), namedExpressions1) == 1)
       assert(Calculator.eval(Ref("b"), namedExpressions1) == 3)
+      assert(Calculator.eval(Ref("c"), namedExpressions1) == 0.5)
 
       assert(Calculator.eval(Plus(One, Two), namedExpressions1) == 3)
       assert(Calculator.eval(Minus(Three, One), namedExpressions1) == 2)
@@ -115,8 +122,8 @@ class CalculatorSuite extends FunSuite with ShouldMatchers {
 
   test("computeValues returns a map of names to their evaluated expressions") {
     new calcTestThings {
-      assert(Calculator.computeValues(namedExpressions1).values.toSet.size == expected.values.toSet.size)
-      assert(Calculator.computeValues(pathologicalReference).values.toSet.size == 0)
+      println(Calculator.computeValues(badRef).values.toSet.size)
+      assert(Calculator.computeValues(namedExpressions1).toSet.size == expected.toSet.size)
     }
   }
 }
