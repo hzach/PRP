@@ -66,7 +66,8 @@ class CalculatorSuite extends FunSuite with ShouldMatchers {
          "a" -> Signal(One),
          "b" -> Signal(Times(Ref("a"), Three)),
          "c" -> Signal(Divide(Ref("b"), Two)),
-         "d" -> Signal(Plus(Ref("a"), Ref("c")))
+         "d" -> Signal(Plus(Ref("a"), Ref("c"))),
+         "e" -> Signal(Ref("a"))
        )
 
      val pathologicalReference: Map[String, Signal[Expr]] =
@@ -113,8 +114,9 @@ class CalculatorSuite extends FunSuite with ShouldMatchers {
   }
 
   test("computeValues returns a map of names to their evaluated expressions") {
-//    new calcTestThings {
-//      assert(Calculator.computeValues(namedExpressions1) == expected)
-//    }
+    new calcTestThings {
+      assert(Calculator.computeValues(namedExpressions1).values.toSet.size == expected.values.toSet.size)
+      assert(Calculator.computeValues(pathologicalReference).values.toSet.size == 0)
+    }
   }
 }
