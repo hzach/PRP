@@ -45,6 +45,22 @@ class NodeScalaSuite extends FunSuite {
     }
   }
 
+  test("any should return the first completed future") {
+    val futures0 = List(Future {throw new Exception("No")}, Future{math.sqrt(144)})
+    
+    //can expect to get the square root of 16 because of the complexity of sqrt
+    val futures1 = List(Future {math.sqrt(16)}, Future{math.sqrt(1000)})
+    
+    try {
+      println(Await.result(Future.any(futures1), 10 nanos))
+    } catch {
+      case e: Exception => println(e.getMessage)
+    }
+
+    assert(Await.result(Future.any(futures1), 10 nanos) == 4.0)
+
+  }
+
   test("CancellationTokenSource should allow stopping the computation") {
     val cts = CancellationTokenSource()
     val ct = cts.cancellationToken

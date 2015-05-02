@@ -4,3 +4,6 @@ submission/
 
 #intellij
 .idea
+
+#vim
+*.swp
