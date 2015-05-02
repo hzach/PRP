@@ -61,6 +61,17 @@ class NodeScalaSuite extends FunSuite {
 
   }
 
+  test("delay should wait to return future for specified time") {
+    val t0 = System.currentTimeMillis()
+
+    Future.delay(1 second) onComplete {
+      case _ => 
+        val duration = System.currentTimeMillis()-t0
+        assert( duration >= 1000L && duration < 1100L)
+    }
+
+  }
+
   test("CancellationTokenSource should allow stopping the computation") {
     val cts = CancellationTokenSource()
     val ct = cts.cancellationToken
