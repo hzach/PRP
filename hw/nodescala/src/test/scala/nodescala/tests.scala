@@ -20,15 +20,142 @@ class NodeScalaSuite extends FunSuite {
 
     assert(Await.result(always, 0 nanos) == 517)
   }
+
   test("A Future should never be completed") {
     val never = Future.never[Int]
 
     try {
       Await.result(never, 1 second)
       assert(false)
+
     } catch {
       case t: TimeoutException => // ok!
     }
+  }
+
+  test("all should return a Future containing a list of values") {
+    val all0 = Future.all(List(Future(123), Future(0)))
+    assert(Await.result(all0, 1 second)  === List(123, 0))
+    
+    val futureFail = Future.all(List(Future(123), Future(new Exception("NO"))))
+    
+    futureFail onComplete {
+      case Success(x) => fail()
+      case Failure(e) => assert(true)
+    }
+  }
+
+  test("any should return the first completed future") {
+    val futures0 = List(Future {throw new Exception("No")}, Future{math.sqrt(144)})
+    
+    //can expect to get the square root of 16 because of the complexity of sqrt
+    val futures1 = List(Future {math.sqrt(16)}, Future{math.sqrt(1000)})
+    
+    try {
+      println(Await.result(Future.any(futures1), 10 nanos))
+    } catch {
+      case e: Exception => println(e.getMessage)
+    }
+
+    assert(Await.result(Future.any(futures1), 10 nanos) == 4.0)
+
+  }
+
+  test("simple case delay") {
+    val delay = Future.delay(1 second)
+    delay onComplete {
+      case _ => println("completed this delay")
+    }
+
+  }
+
+  test("delay should wait to return future for specified time") {
+    val t0 = System.currentTimeMillis()
+
+    Future.delay(1 second) onComplete {
+      case _ => 
+        val duration = System.currentTimeMillis()-t0
+        assert( duration >= 1000L && duration < 1100L)
+    }
+
+  }
+
+  test("now should return the future only if it is ready right now") {
+    val future0 = Future(123)
+    assert(future0.now === 123)
+
+    intercept[Exception]{ 
+      //definitely should not be ready right away.
+      Future(math.sqrt(10000)).now 
+    }
+  }
+
+  test("Simple case for continueWith.") {
+    
+    val cont = (f: Future[Int]) => {
+      val x = Await.result(f, 2 seconds)
+      (x + 1).toString
+    }
+
+    val p = Promise[Int]().complete(Success(5)).future.continueWith(cont)
+
+    p onComplete {
+      case Success(x) => assert( x === "6")
+      case Failure(e) => fail(e)
+    }
+
+  }
+
+  test("continueWith of future that never completes should time out") {
+
+    val cont = (f: Future[Int]) => {
+      val x = Await.result(f, 2 seconds)
+      (x + 1).toString
+    }
+
+    val f = Future.never
+
+    f.continueWith(cont) onComplete{
+      case Success(x) => fail("didn't time out")
+      case Failure(e) => assert(true)
+    }
+
+  }
+
+  test("Simple case for continue with successfully completed future") {
+
+    val cont = (f: Try[Int]) => {
+      f match {
+        case Success(x) => (x+1).toString
+        case Failure(e) => (-1).toString
+      }
+    }
+
+    val p = Promise[Int]().complete(Success(5)).future.continue(cont)
+
+    p onComplete {
+      case Success(x) => assert(x === "6")
+      case Failure(e) => fail()
+    }
+
+  }
+
+  test ("Simple case for continue with a failed future") {
+
+    val cont = (f: Try[Int]) => {
+      f match {
+        case Success(x) => (x+1).toString
+        case Failure(e) => (-1).toString
+      }
+    }
+
+    val p = Future.never.continue(cont)
+
+    p onComplete {
+      case Success(x) => fail()
+      case Failure(e) => assert(true)
+    }
+
   }
 
   test("CancellationTokenSource should allow stopping the computation") {
@@ -46,6 +173,28 @@ class NodeScalaSuite extends FunSuite {
 
     cts.unsubscribe()
     assert(Await.result(p.future, 1 second) == "done")
+  }
+
+  test("run") {
+
+    val working = Future.run() { ct =>
+      Future {
+        var count = 0
+        while (ct.nonCancelled) {
+          println("working")
+          Thread.sleep(100)
+        }
+        println("done")
+      }
+    }
+
+    //working.unsubscribe()
+
+    Future.delay(1 seconds) onComplete {
+      case _ =>
+        println("unsubscribing")
+        working.unsubscribe()
+    }
   }
 
   class DummyExchange(val request: Request) extends Exchange {
