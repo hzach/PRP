@@ -37,11 +37,10 @@ class NodeScalaSuite extends FunSuite {
     assert(Await.result(all0, 1 second)  === List(123, 0))
     
     val futureFail = Future.all(List(Future(123), Future(new Exception("NO"))))
-    try {
-      val result = Await.result(futureFail, 1 second)
-    } catch {
-      case f: Exception => assert(true)
-      case _ => //test failed
+    
+    futureFail onComplete {
+      case Success(x) => fail()
+      case Failure(e) => assert(true)
     }
   }
 
@@ -68,6 +67,32 @@ class NodeScalaSuite extends FunSuite {
       case _ => 
         val duration = System.currentTimeMillis()-t0
         assert( duration >= 1000L && duration < 1100L)
+    }
+
+  }
+
+  test("now should return the future only if it is ready right now") {
+    val future0 = Future(123)
+    assert(future0.now === 123)
+
+    intercept[Exception]{ 
+      //definitely should not be ready right away.
+      Future(math.sqrt(10000)).now 
+    }
+  }
+
+  test("Simple case for continueWith.") {
+    
+    val cont = (f: Future[Int]) => {
+      val x = Await.result(f, 2 seconds)
+      (x + 1).toString
+    }
+
+    val p = Promise[Int]().complete(Success(5)).future.continueWith(cont)
+
+    p onComplete {
+      case Success(x) => assert( x === "6")
+      case Failure(e) => fail(e)
     }
 
   }
