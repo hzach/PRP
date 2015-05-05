@@ -14,6 +14,7 @@ import java.net.InetSocketAddress
 /** Contains utilities common to the NodeScala© framework.
  */
 trait NodeScala {
+  
   import NodeScala._
 
   def port: Int
@@ -27,9 +28,13 @@ trait NodeScala {
    *
    *  @param exchange     the exchange used to write the response back
    *  @param token        the cancellation token 
-   *  @param response         the response to write back
+   *  @param response     the response to write back
    */
-  private def respond(exchange: Exchange, token: CancellationToken, response: Response): Unit = ???
+  private def respond(exchange: Exchange, token: CancellationToken, response: Response): Unit =
+    if (response.hasNext() && token.nonCancelled){ 
+        exchange.write(response.next)
+        respond(exchange, token, response)
+      } else exchange.close()
 
   /** A server:
    *  1) creates and starts an http listener
@@ -91,6 +96,7 @@ object NodeScala {
   }
 
   trait Listener {
+    
     def port: Int
 
     def relativePath: String
@@ -108,7 +114,7 @@ object NodeScala {
      *     and then completes the promise with a request when `handle` method is invoked
      *  3) returns the future with the request
      *
-     *  @return                the promise holding the pair of a request and an exchange object
+     *  @return the promise holding the pair of a request and an exchange object
      */
     def nextRequest(): Future[(Request, Exchange)] = {
       val p = Promise[(Request, Exchange)]()
