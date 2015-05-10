@@ -56,12 +56,10 @@ package object nodescala {
     /** Returns a future with a unit value that is completed after time `t`.
      */
     def delay(t: Duration): Future[Unit] = {
-      val p = Promise[Unit]()
-      Try(Await.result(never, t)) match { case f =>
-        p.complete(f)
+      Try(Await.ready(never, t)) match {
+        case Success(f) => throw new Exception("Shouldn't get here")
+        case Failure(t) => Future( () => () )
       }
-      p.future
-    
     }
 
     /** Completes this future with user input.
@@ -106,19 +104,7 @@ package object nodescala {
      *  The function `cont` is called only after the current future completes.
      *  The resulting future contains a value returned by `cont`.
      */
-    def continueWith[S](cont: Future[T] => S): Future[S] = {
-      val p = Promise[S]()
-
-      f onComplete {
-        case x => p.complete(Try(cont(f)))
-      }
-
-      p.future
-      
-    }
-      
-      
-      //f map ( t => cont(Future(t)))
+    def continueWith[S](cont: Future[T] => S): Future[S] = f map ( t => cont(Future(t)))
 
     /** Continues the computation of this future by taking the result
      *  of the current future and mapping it into another future.
