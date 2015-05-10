@@ -88,4 +88,60 @@ class SwingApiTest extends FunSuite {
     assert(observed == Seq("T", "Tu", "Tur", "Turi", "Turin", "Turing"), observed)
   }
 
+  test("SwingApi should not emit text field values to the observable when it unsubscribes") {
+    val textField = new swingApi.TextField
+    val values = textField.textValues
+
+    val observed = mutable.Buffer[String]()
+    val sub = values subscribe {
+      observed += _
+    }
+
+    // write some text now
+    textField.text = "T"
+    textField.text = "Tu"
+    textField.text = "Tur"
+    // stop listening
+    sub.unsubscribe()
+    textField.text = "Turi"
+    textField.text = "Turin"
+    textField.text = "Turing"
+
+    assert(observed == Seq("T", "Tu", "Tur"), observed)
+  }
+  
+  test("SwingApi should emit button clicks to the observable") {
+    val button = new swingApi.Button
+    val clicks = button.clicks
+    val observed = mutable.Buffer[Button]()
+    
+    val sub = clicks subscribe {
+      observed += _
+    }
+
+    //Spam the button
+    button.click()
+    button.click()
+
+    assert(observed == Seq(button, button), observed)
+  }
+
+  test("SwingApi should not emit button clicks to the observable when it unsubscribes") {
+    val button = new swingApi.Button
+    val clicks = button.clicks
+    val observed = mutable.Buffer[Button]()
+
+    val sub = clicks subscribe {
+      observed += _
+    }
+
+    //Spam the button some
+    button.click()
+    button.click()
+    //Stop listening
+    sub.unsubscribe()
+    button.click()
+
+    assert(observed == Seq(button, button), observed)
+  }
 }
