@@ -8,7 +8,9 @@ import ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.async.Async.{async, await}
 import org.scalatest._
+import org.scalatest.concurrent._
 import NodeScala._
+import Main._
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 
@@ -35,13 +37,18 @@ class NodeScalaSuite extends FunSuite {
 
   test("all should return a Future containing a list of values") {
     val all0 = Future.all(List(Future(123), Future(0)))
-    assert(Await.result(all0, 1 second)  === List(123, 0))
     
+    assert(Await.result(all0, 1 second) === List(123, 0))
+  }
+
+  test ("all should result in a Future that if the Future list contains one or more failing Futures") {
     val futureFail = Future.all(List(Future(123), Future(new Exception("NO"))))
     
-    futureFail onComplete {
-      case Success(x) => fail()
-      case Failure(e) => assert(true)
+    try {
+      Await.result(futureFail, 1 second)
+      fail()
+    } catch {
+      case e: Exception => assert(true)
     }
   }
 
@@ -74,10 +81,46 @@ class NodeScalaSuite extends FunSuite {
 
     Future.delay(1 second) onComplete {
       case _ => 
-        val duration = System.currentTimeMillis()-t0
+        val duration = System.currentTimeMillis() - t0
         assert( duration >= 1000L && duration < 1100L)
     }
+  }
+  test("A Future should not complete after 1 second when using a delay of 3 seconds") {
+    val t0 = System.currentTimeMillis()
 
+    val combined = for {
+      f1 <- Future.delay(1 second)
+      f2 <- Future.delay(1 second)
+      f3 <- Future.delay(1 second)
+    } yield ()
+    
+    combined onComplete { case _ =>
+      val duration = System.currentTimeMillis() - t0
+      assert( duration > 1000L && duration <= 3010L)
+    }
+
+  }
+
+  test("A Future should complete after 3s when using a delay of 1s") {
+    val t0 = System.currentTimeMillis()
+    
+    val f = Future.delay(1 second)
+
+    f onComplete { case _ =>
+      val duration = System.currentTimeMillis() - t0
+      assert( duration <= 3000L )
+    }
+
+  }
+
+  test ("A Future should not complete after 2s when using a delay of 5s") {
+    try {
+      val p = Future.delay(5 seconds)
+      val z = Await.result(p, 2 seconds)
+      assert(false)
+    } catch {
+      case t: TimeoutException => // ok!
+    }
   }
 
   test("now should return the future only if it is ready right now") {
@@ -181,7 +224,6 @@ class NodeScalaSuite extends FunSuite {
       Future {
         var count = 0
         while (ct.nonCancelled) {
-          println("working")
           Thread.sleep(100)
         }
         println("done")
@@ -192,7 +234,6 @@ class NodeScalaSuite extends FunSuite {
 
     Future.delay(1 seconds) onComplete {
       case _ =>
-        println("unsubscribing")
         working.unsubscribe()
     }
   }

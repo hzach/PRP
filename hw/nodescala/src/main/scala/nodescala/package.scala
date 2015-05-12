@@ -57,7 +57,8 @@ package object nodescala {
      */
     def delay(t: Duration): Future[Unit] = {
       Try(Await.ready(never, t)) match {
-        case _ => Future()
+        case Success(f) => throw new Exception("Shouldn't get here")
+        case Failure(t) => Future( () => () )
       }
     }
 
@@ -158,16 +159,13 @@ package object nodescala {
     /** Creates a new `CancellationTokenSource`.
      */
     def apply() = new CancellationTokenSource {
-      println("calling .apply")
       val p = Promise[Unit]()
 
       val cancellationToken = new CancellationToken {
-        println("creating cancellation token")
         def isCancelled = p.future.value != None
       }
 
       def unsubscribe() {
-        println("calling unsubscribe")
         p.trySuccess(())
       }
 
