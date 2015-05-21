@@ -3,6 +3,7 @@ package suggestions
 
 
 import language.postfixOps
+import scala.collection._
 import scala.concurrent._
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -53,8 +54,14 @@ class WikipediaApiTest extends FunSuite {
 
   test("WikipediaApi should make a stream of success and failures.") {
     val requests = Observable.just("a", "b", "c")
-    val expected = Observable.just(Success("a"), Success("b"), Success("c"))
-    assert(requests.recovered === expected)
+    
+    val values = mutable.Buffer[Try[String]]()
+    
+    val sub = requests.recovered subscribe {
+      values += _
+    }
+    
+    assert(values == Seq(Success("a"), Success("b"), Success("c")), values)
   }
 
   test("WikipediaApi should correctly use concatRecovered") {
