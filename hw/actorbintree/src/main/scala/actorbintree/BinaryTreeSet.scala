@@ -81,18 +81,15 @@ class BinaryTreeSet extends Actor {
     case o: Operation =>
       if (pendingQueue.isEmpty) root ! doOperation(self, o)
       pendingQueue = pendingQueue :+ o
-      println("QUEUE : " + pendingQueue)
 
     case reply: OperationReply =>
-      println("received reply to operation id: " + reply.id)
       val (op, queue) = pendingQueue.dequeue
       pendingQueue = queue
-      println("DEQUEUE: " + pendingQueue )
       op.requester ! reply
 
       if (pendingQueue.nonEmpty) {
         val next = pendingQueue.front
-        root ! next
+        root ! doOperation(self, next)
       }
 
     case GC =>
@@ -168,8 +165,6 @@ class BinaryTreeNode(val elem: Int, initiallyRemoved: Boolean) extends Actor {
 
     case c: Contains =>
 
-      println("checking containment: id = " + c.id)
-
       //check the right subtree
       if (elem == c.elem) {
         c.requester ! ContainsResult(c.id, !removed)
@@ -184,15 +179,16 @@ class BinaryTreeNode(val elem: Int, initiallyRemoved: Boolean) extends Actor {
 
     case r: Remove =>
 
-      //check the right subtree
       if ( elem == r.elem) {
         removed = true
         r.requester ! OperationFinished(r.id)
       } else {
         val pos = if (elem < r.elem) Right else Left
         subtrees.get(pos) match {
-          case Some(node) => node ! Remove(r.requester, r.id, r.elem)
-          case None => r.requester ! OperationFinished(r.id)
+          case Some(node) =>
+            node ! Remove(r.requester, r.id, r.elem)
+          case None =>
+            r.requester ! OperationFinished(r.id)
         }
       }
 
