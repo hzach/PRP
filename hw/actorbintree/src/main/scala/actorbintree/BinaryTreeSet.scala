@@ -159,8 +159,6 @@ class BinaryTreeNode(val elem: Int, initiallyRemoved: Boolean) extends Actor {
             subtrees += pos -> context.actorOf(props(i.elem, initiallyRemoved = false))
             i.requester ! OperationFinished(i.id)
         }
-
-
       }
 
     case c: Contains =>
@@ -178,7 +176,6 @@ class BinaryTreeNode(val elem: Int, initiallyRemoved: Boolean) extends Actor {
 
 
     case r: Remove =>
-
       if ( elem == r.elem) {
         removed = true
         r.requester ! OperationFinished(r.id)
@@ -192,8 +189,6 @@ class BinaryTreeNode(val elem: Int, initiallyRemoved: Boolean) extends Actor {
         }
       }
 
-
-
     case CopyTo(treeNode) =>
       if (subtrees.isEmpty && removed) {
         context.parent ! CopyFinished
@@ -204,7 +199,6 @@ class BinaryTreeNode(val elem: Int, initiallyRemoved: Boolean) extends Actor {
         context become copying(expected, removed)
         if (!removed) treeNode ! Insert(self, math.random.toInt, elem)
       }
-
   }
 
   // optional
