@@ -46,21 +46,56 @@ class Replica(val arbiter: ActorRef, persistenceProps: Props) extends Actor {
   // the current set of replicators
   var replicators = Set.empty[ActorRef]
 
+  override def preStart(): Unit = {
+    arbiter ! Join
+  }
 
   def receive = {
-    case JoinedPrimary   => context.become(leader)
-    case JoinedSecondary => context.become(replica)
+    case JoinedPrimary   => context become leader
+    case JoinedSecondary => context become replica(0)
   }
 
   /* TODO Behavior for  the leader role. */
   val leader: Receive = {
-    case _ =>
+    // Inserts the new key-value pair into the
+    // store. A new entry is created if it does
+    // not already exists and the current value is
+    // overriden if it if present
+    case Insert(key, value, id) =>
+      kv = kv.updated(key, value)
+      sender ! OperationAck(id)
+
+    case Remove(key, id) =>
+      kv = kv - key
+      sender ! OperationAck(id)
+
+    case Get(key, id) =>
+      val result = kv.get(key)
+      sender ! GetResult(key, result, id)
+
   }
 
   /* TODO Behavior for the replica role. */
-  val replica: Receive = {
-    case _ =>
-  }
+  def replica(seq: Long): Receive = {
 
+    case Get(key, id) =>
+      val result = kv.get(key)
+      sender ! GetResult(key, result, id)
+
+    case Snapshot(key, valueOption, incSeq) =>
+      if (incSeq < seq ) sender ! SnapshotAck(key, incSeq)
+      if (incSeq == seq)
+        valueOption match {
+          case Some(x) =>
+            kv = kv.updated(key, x)
+            sender ! SnapshotAck(key, incSeq)
+            context become replica(seq + 1)
+          case None =>
+            kv = kv - key
+            sender ! SnapshotAck(key, incSeq)
+            context become replica(seq + 1)
+
+        }
+  }
 }
 
