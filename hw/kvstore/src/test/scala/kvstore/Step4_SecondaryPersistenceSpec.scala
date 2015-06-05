@@ -26,7 +26,6 @@ class Step4_SecondaryPersistenceSpec extends TestKit(ActorSystem("Step4Secondary
 
   test("case1: Secondary should not acknowledge snapshots until persisted") {
     import Replicator._
-
     val arbiter = TestProbe()
     val persistence = TestProbe()
     val replicator = TestProbe()
@@ -37,7 +36,6 @@ class Step4_SecondaryPersistenceSpec extends TestKit(ActorSystem("Step4Secondary
     arbiter.send(secondary, JoinedSecondary)
 
     client.get("k1") should ===(None)
-
     replicator.send(secondary, Snapshot("k1", Some("v1"), 0L))
     val persistId = persistence.expectMsgPF() {
       case Persist("k1", Some("v1"), id) => id
